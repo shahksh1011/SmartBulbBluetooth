@@ -8,12 +8,15 @@ import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
 
 public class MainActivity extends AppCompatActivity {
 
     static int REQUEST_ENABLE_BT = 1;
     private BluetoothAdapter bluetoothAdapter;
     static String UUID = "dfb553f2-d0a9-0241-4cbc-71aeba4b807c";
+    Button button;
 //    private LeDeviceListAdapter leDeviceListAdapter;
 
     @Override
@@ -27,6 +30,15 @@ public class MainActivity extends AppCompatActivity {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         }
+        button = findViewById(R.id.beep_button);
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent i = new Intent(MainActivity.this, DeviceScanActivity.class);
+                startActivity(i);
+
+            }
+        });
     }
 
 
