@@ -45,6 +45,7 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothAdapter bluetoothAdapter;
     Boolean btScanning = false;
     //UUID SERVICE_ID = UUID.fromString("df500a63-02dd-c22b-1a3d-9c57281452e0");
+//    UUID SERVICE_ID = UUID.fromString("df675fb2-174a-3ed4-17fe-3fc0a8c19cbd");
     UUID SERVICE_ID = UUID.fromString("df675fb2-174a-3ed4-17fe-3fc0a8c19cbd");
     UUID CHARACTERISTIC_BULB = UUID.fromString("fb959362-f26e-43a9-927c-7e17d8fb2d8d");
     UUID CHARACTERISTIC_TEMP = UUID.fromString("0ced9345-b31f-457d-a6a2-b3db9b03e39a");
