@@ -44,7 +44,8 @@ public class MainActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
     private BluetoothAdapter bluetoothAdapter;
     Boolean btScanning = false;
-    UUID SERVICE_ID = UUID.fromString("df500a63-02dd-c22b-1a3d-9c57281452e0");
+    //UUID SERVICE_ID = UUID.fromString("df500a63-02dd-c22b-1a3d-9c57281452e0");
+    UUID SERVICE_ID = UUID.fromString("df675fb2-174a-3ed4-17fe-3fc0a8c19cbd");
     UUID CHARACTERISTIC_BULB = UUID.fromString("fb959362-f26e-43a9-927c-7e17d8fb2d8d");
     UUID CHARACTERISTIC_TEMP = UUID.fromString("0ced9345-b31f-457d-a6a2-b3db9b03e39a");
     UUID CHARACTERISTIC_BEEP = UUID.fromString("ec958823-f26e-43a9-927c-7e17d8f32a90");
@@ -147,7 +148,6 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onConnectionStateChange(final BluetoothGatt gatt, final int status, final int newState) {
             // this will get called when a device connects or disconnects
-            System.out.println(newState);
             switch (newState) {
                 case 2:
 
@@ -177,10 +177,14 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
             List<BluetoothGattService> gattServices = bluetoothGatt.getServices();
+
             for (BluetoothGattService gattService : gattServices) {
 
                 final String uuid = gattService.getUuid().toString();
                 Log.d(TAG,"Service discovered: " + uuid);
+                if(!uuid.equals(SERVICE_ID.toString())){
+                    continue;
+                }
                 MainActivity.this.runOnUiThread(new Runnable() {
                     public void run() {
 
@@ -190,14 +194,21 @@ public class MainActivity extends AppCompatActivity {
                         gattService.getCharacteristics();
 
                 // Loops through available Characteristics.
-                for (BluetoothGattCharacteristic gattCharacteristic :
+                for (final BluetoothGattCharacteristic gattCharacteristic :
                         gattCharacteristics) {
 
                     final String charUuid = gattCharacteristic.getUuid().toString();
                     Log.d(TAG,"Characteristic discovered for service: " + charUuid);
+                    boolean read = bluetoothGatt.readCharacteristic(gattCharacteristic);
                     MainActivity.this.runOnUiThread(new Runnable() {
                         public void run() {
-                           Log.d(TAG,"Characteristic discovered for service: "+charUuid+"\n");
+                           //Log.d(TAG,"Characteristic discovered for service: "+charUuid+"\n");
+
+                            /*if(charUuid.equals(CHARACTERISTIC_BULB.toString())){
+                                byte[] val = gattCharacteristic.getValue();
+                                //bulbSwitch.setChecked();
+                                Log.d(TAG, "value : "+val[0]+" : "+val.toString());
+                            }*/
                         }
                     });
 
@@ -208,10 +219,16 @@ public class MainActivity extends AppCompatActivity {
         @Override
         // Result of a characteristic read operation
         public void onCharacteristicRead(BluetoothGatt gatt,
-                                         BluetoothGattCharacteristic characteristic,
+                                         final BluetoothGattCharacteristic characteristic,
                                          int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                //broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+                String uuid = characteristic.getUuid().toString();
+                String ch = CHARACTERISTIC_BULB.toString();
+                if(uuid.equals(ch)){
+                    byte[] val = characteristic.getValue();
+                    Log.d(TAG, +val[0]+" : "+val.toString());
+                    //bulbSwitch.setChecked();
+                }
             }
         }
     };
