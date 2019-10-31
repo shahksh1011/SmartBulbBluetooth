@@ -119,7 +119,7 @@ public class MainActivity extends AppCompatActivity {
                         beepGattChar.setValue(value);
                         boolean status = bluetoothGatt.writeCharacteristic(beepGattChar);
                         if(status){
-                            beepBtn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
+                            beepBtn.setBackgroundColor(getResources().getColor(R.color.colorAccent));
                         }
                     }
 
@@ -136,7 +136,7 @@ public class MainActivity extends AppCompatActivity {
                     bulbGattChar.setValue(value);
                     boolean status = bluetoothGatt.writeCharacteristic(bulbGattChar);
                     if(status){
-                        bulbOff.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
+                        bulbOff.setBackgroundColor(getResources().getColor(R.color.colorAccent));
                         bulbOn.setBackgroundColor(getResources().getColor(R.color.colorDisable));
                     }
                 }
@@ -203,7 +203,7 @@ public class MainActivity extends AppCompatActivity {
                 MainActivity.this.runOnUiThread(new Runnable() {
                     public void run() {
                         if(i==0){
-                            bulbOff.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
+                            bulbOff.setBackgroundColor(getResources().getColor(R.color.colorAccent));
                             bulbOn.setBackgroundColor(getResources().getColor(R.color.colorDisable));
                         }else{
                             bulbOn.setBackgroundColor(getResources().getColor(R.color.colorAccent));
