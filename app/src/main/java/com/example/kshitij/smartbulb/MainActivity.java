@@ -9,6 +9,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.BluetoothLeScanner;
@@ -39,24 +40,24 @@ import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
 
-    private String TAG= "MAIN Activity";
-    private final static int REQUEST_ENABLE_BT = 1;
+    private String TAG= "Main Activity";
+    private final static int REQUEST_ENABLE_BT = 2;
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
     private BluetoothAdapter bluetoothAdapter;
     Boolean btScanning = false;
-    //UUID SERVICE_ID = UUID.fromString("df500a63-02dd-c22b-1a3d-9c57281452e0");
-//    UUID SERVICE_ID = UUID.fromString("df675fb2-174a-3ed4-17fe-3fc0a8c19cbd");
-    UUID SERVICE_ID = UUID.fromString("df675fb2-174a-3ed4-17fe-3fc0a8c19cbd");
+    UUID SERVICE_ID = UUID.fromString("df500a63-02dd-c22b-1a3d-9c57281452e0");
+    //UUID SERVICE_ID = UUID.fromString("df675fb2-174a-3ed4-17fe-3fc0a8c19cbd");
     UUID CHARACTERISTIC_BULB = UUID.fromString("fb959362-f26e-43a9-927c-7e17d8fb2d8d");
     UUID CHARACTERISTIC_TEMP = UUID.fromString("0ced9345-b31f-457d-a6a2-b3db9b03e39a");
     UUID CHARACTERISTIC_BEEP = UUID.fromString("ec958823-f26e-43a9-927c-7e17d8f32a90");
-    Button beepBtn;
+    Button beepBtn, bulbOn, bulbOff;
     TextView connStatus, temperature;
-    ToggleButton bulbSwitch;
+
 
     BluetoothLeScanner btScanner;
     BluetoothGatt bluetoothGatt;
     BluetoothGattService gattService;
+    BluetoothGattCharacteristic temperatureGattChar, bulbGattChar, beepGattChar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,33 +88,74 @@ public class MainActivity extends AppCompatActivity {
         }
         beepBtn = findViewById(R.id.beep_button);
         connStatus = findViewById(R.id.status_text_view);
+        connStatus.setText("Scanning...");
         temperature = findViewById(R.id.temperature_text_view);
-        bulbSwitch = findViewById(R.id.bulb_Switch);
+        bulbOn = findViewById(R.id.bulb_Switch_on);
+        bulbOff = findViewById(R.id.bulb_Switch_off);
 
         startScanning();
 
-        bulbSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                BluetoothGattCharacteristic charac = gattService.getCharacteristic(CHARACTERISTIC_BULB);
-                if (charac == null) {
-                    Log.e("GATT", "char not found!");
-                }
-                if (isChecked) {
-                    /*byte[] value = new byte[1];
-                    value[0] = (byte) (1);
-                    charac.setValue(value);
-                    boolean status = bluetoothGatt.writeCharacteristic(charac);*/
-                    //return status;
-                    Toast.makeText(MainActivity.this, "Switch Blub ON : ", Toast.LENGTH_SHORT).show();
-                } else {
-                    Toast.makeText(MainActivity.this, "Switch Blub OFF", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
         beepBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                if(beepGattChar!=null){
+                    boolean rs = bluetoothGatt.readCharacteristic(beepGattChar);
+                    if(!rs){
+                        Log.d(TAG, "Can't read beep Char");
+                    }
+                    byte[] val = beepGattChar.getValue();
+                    int i =  Character.getNumericValue(val[0]);
+                    if(i==1){
+                        byte[] value = new byte[1];
+                        value[0] = (byte) (0 & 0xFF);
+                        beepGattChar.setValue(value);
+                        boolean status = bluetoothGatt.writeCharacteristic(beepGattChar);
+                        if(status){
+                            beepBtn.setBackgroundColor(getResources().getColor(R.color.colorDisable));
+                        }
+                    }else{
+                        byte[] value = new byte[1];
+                        value[0] = (byte) (1 & 0xFF);
+                        beepGattChar.setValue(value);
+                        boolean status = bluetoothGatt.writeCharacteristic(beepGattChar);
+                        if(status){
+                            beepBtn.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
+                        }
+                    }
 
+                }
+            }
+        });
+
+        bulbOff.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(bulbGattChar!=null){
+                    byte[] value = new byte[1];
+                    value[0] = (byte) (0 & 0xFF);
+                    bulbGattChar.setValue(value);
+                    boolean status = bluetoothGatt.writeCharacteristic(bulbGattChar);
+                    if(status){
+                        bulbOff.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
+                        bulbOn.setBackgroundColor(getResources().getColor(R.color.colorDisable));
+                    }
+                }
+            }
+        });
+
+        bulbOn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(bulbGattChar!=null){
+                    byte[] value = new byte[1];
+                    value[0] = (byte) (1 & 0xFF);
+                    bulbGattChar.setValue(value);
+                    boolean status = bluetoothGatt.writeCharacteristic(bulbGattChar);
+                    if(status){
+                        bulbOff.setBackgroundColor(getResources().getColor(R.color.colorDisable));
+                        bulbOn.setBackgroundColor(getResources().getColor(R.color.colorAccent));
+                    }
+                }
             }
         });
     }
@@ -126,11 +168,13 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onBatchScanResults(List<ScanResult> results) {
             super.onBatchScanResults(results);
+            Log.d(TAG, "Scan Batch");
         }
 
         @Override
         public void onScanFailed(int errorCode) {
             super.onScanFailed(errorCode);
+            Log.d(TAG, "Scan Failed");
         }
     };
 
@@ -139,11 +183,35 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, final BluetoothGattCharacteristic characteristic) {
             // this will get called anytime you perform a read or write characteristic operation
-            MainActivity.this.runOnUiThread(new Runnable() {
-                public void run() {
-
-                }
-            });
+            if( characteristic.getUuid().toString().equals(CHARACTERISTIC_TEMP.toString())){
+                byte[] val = characteristic.getValue();
+                final int i =  Character.getNumericValue(val[0]);
+                final int j =  Character.getNumericValue(val[1]);
+                final StringBuilder stringBuilder = new StringBuilder(val.length);
+                stringBuilder.append(i);
+                stringBuilder.append(j);
+                stringBuilder.append(" F");
+                MainActivity.this.runOnUiThread(new Runnable() {
+                    public void run() {
+                        temperature.setText(stringBuilder);
+                    }
+                });
+            }else if( characteristic.getUuid().toString().equals(CHARACTERISTIC_BULB.toString())){
+                byte[] val = characteristic.getValue();
+                final int i =  Character.getNumericValue(val[0]);
+                Log.d(TAG, "read "+ i);
+                MainActivity.this.runOnUiThread(new Runnable() {
+                    public void run() {
+                        if(i==0){
+                            bulbOff.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
+                            bulbOn.setBackgroundColor(getResources().getColor(R.color.colorDisable));
+                        }else{
+                            bulbOn.setBackgroundColor(getResources().getColor(R.color.colorAccent));
+                            bulbOff.setBackgroundColor(getResources().getColor(R.color.colorDisable));
+                        }
+                    }
+                });
+            }
         }
 
         @Override
@@ -151,10 +219,9 @@ public class MainActivity extends AppCompatActivity {
             // this will get called when a device connects or disconnects
             switch (newState) {
                 case 2:
-
                     MainActivity.this.runOnUiThread(new Runnable() {
                         public void run() {
-                            connStatus.setText("Status: Connected");
+                            connStatus.setText("Connected");
                         }
                     });
                     bluetoothGatt.discoverServices();
@@ -172,63 +239,60 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onServicesDiscovered(final BluetoothGatt gatt, final int status) {
-            MainActivity.this.runOnUiThread(new Runnable() {
-                public void run() {
-
+            gattService = gatt.getService(SERVICE_ID);
+            if(gattService != null){
+                temperatureGattChar = gattService.getCharacteristic(CHARACTERISTIC_TEMP);
+                bulbGattChar = gattService.getCharacteristic(CHARACTERISTIC_BULB);
+                beepGattChar = gattService.getCharacteristic(CHARACTERISTIC_BEEP);
+                boolean rs = gatt.readCharacteristic(bulbGattChar);
+                if(!rs){
+                    Log.d(TAG, "Can't read bulb Char");
                 }
-            });
-            List<BluetoothGattService> gattServices = bluetoothGatt.getServices();
-
-            for (BluetoothGattService gattService : gattServices) {
-
-                final String uuid = gattService.getUuid().toString();
-                Log.d(TAG,"Service discovered: " + uuid);
-                if(!uuid.equals(SERVICE_ID.toString())){
-                    continue;
+                for (BluetoothGattDescriptor descriptor : temperatureGattChar.getDescriptors()) {
+                    descriptor.setValue( BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);
+                    gatt.writeDescriptor(descriptor);
                 }
-                MainActivity.this.runOnUiThread(new Runnable() {
-                    public void run() {
-
-                    }
-                });
-                List<BluetoothGattCharacteristic> gattCharacteristics =
-                        gattService.getCharacteristics();
-
-                // Loops through available Characteristics.
-                for (final BluetoothGattCharacteristic gattCharacteristic :
-                        gattCharacteristics) {
-
-                    final String charUuid = gattCharacteristic.getUuid().toString();
-                    Log.d(TAG,"Characteristic discovered for service: " + charUuid);
-                    boolean read = bluetoothGatt.readCharacteristic(gattCharacteristic);
-                    MainActivity.this.runOnUiThread(new Runnable() {
-                        public void run() {
-                           //Log.d(TAG,"Characteristic discovered for service: "+charUuid+"\n");
-
-                            /*if(charUuid.equals(CHARACTERISTIC_BULB.toString())){
-                                byte[] val = gattCharacteristic.getValue();
-                                //bulbSwitch.setChecked();
-                                Log.d(TAG, "value : "+val[0]+" : "+val.toString());
-                            }*/
-                        }
-                    });
-
-                }
+                gatt.setCharacteristicNotification(temperatureGattChar, true);
             }
         }
 
         @Override
-        // Result of a characteristic read operation
+        public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
+            super.onDescriptorWrite(gatt, descriptor, status);
+        }
+
+        @Override
         public void onCharacteristicRead(BluetoothGatt gatt,
                                          final BluetoothGattCharacteristic characteristic,
                                          int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                String uuid = characteristic.getUuid().toString();
-                String ch = CHARACTERISTIC_BULB.toString();
-                if(uuid.equals(ch)){
+                if( characteristic.getUuid().toString().equals(CHARACTERISTIC_BULB.toString())){
                     byte[] val = characteristic.getValue();
-                    Log.d(TAG, +val[0]+" : "+val.toString());
-                    //bulbSwitch.setChecked();
+                    final int i =  Character.getNumericValue(val[0]);
+                    Log.d(TAG, "read "+ i);
+                    MainActivity.this.runOnUiThread(new Runnable() {
+                        public void run() {
+                            if(i==0){
+                                bulbOff.setBackgroundColor(getResources().getColor(R.color.colorAccent));
+                                bulbOn.setBackgroundColor(getResources().getColor(R.color.colorDisable));
+                            }else{
+                                bulbOn.setBackgroundColor(getResources().getColor(R.color.colorAccent));
+                                bulbOff.setBackgroundColor(getResources().getColor(R.color.colorDisable));
+                            }
+                        }
+                    });
+                }else if( characteristic.getUuid().toString().equals(CHARACTERISTIC_BEEP.toString())){
+                    byte[] val = characteristic.getValue();
+                    final int i =  Character.getNumericValue(val[0]);
+                    MainActivity.this.runOnUiThread(new Runnable() {
+                        public void run() {
+                            if(i==1){
+                                beepBtn.setBackgroundColor(getResources().getColor(R.color.colorAccent));
+                            }else{
+                                beepBtn.setBackgroundColor(getResources().getColor(R.color.colorDisable));
+                            }
+                        }
+                    });
                 }
             }
         }
@@ -244,7 +308,7 @@ public class MainActivity extends AppCompatActivity {
                 List<ScanFilter> filters = new ArrayList<>();
                 filters.add(scanFilter);
                 final ScanSettings settings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build();
-                Log.d("ok","starting....");
+                Log.d(TAG,"starting....");
                 btScanner.startScan(filters, settings, leScanCallback);
             }
         });
