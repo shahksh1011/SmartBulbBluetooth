@@ -53,7 +53,7 @@ public class MainActivity extends AppCompatActivity {
     Button beepBtn, bulbOn, bulbOff;
     TextView connStatus, temperature;
 
-
+   /* boolean beepOn = false;*/
     BluetoothLeScanner btScanner;
     BluetoothGatt bluetoothGatt;
     BluetoothGattService gattService;
@@ -99,30 +99,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 if(beepGattChar!=null){
-                    boolean rs = bluetoothGatt.readCharacteristic(beepGattChar);
-                    if(!rs){
-                        Log.d(TAG, "Can't read beep Char");
-                    }
-                    byte[] val = beepGattChar.getValue();
-                    int i =  Character.getNumericValue(val[0]);
-                    if(i==1){
-                        byte[] value = new byte[1];
-                        value[0] = (byte) (0 & 0xFF);
-                        beepGattChar.setValue(value);
-                        boolean status = bluetoothGatt.writeCharacteristic(beepGattChar);
-                        if(status){
-                            beepBtn.setBackgroundColor(getResources().getColor(R.color.colorDisable));
-                        }
-                    }else{
-                        byte[] value = new byte[1];
-                        value[0] = (byte) (1 & 0xFF);
-                        beepGattChar.setValue(value);
-                        boolean status = bluetoothGatt.writeCharacteristic(beepGattChar);
-                        if(status){
-                            beepBtn.setBackgroundColor(getResources().getColor(R.color.colorAccent));
-                        }
-                    }
-
+                    byte[] value = new byte[1];
+                    value[0] = (byte) (1 & 0xFF);
+                    beepGattChar.setValue(value);
+                    bluetoothGatt.writeCharacteristic(beepGattChar);
+                }else{
+                    Toast.makeText(MainActivity.this, "Not connected", Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -139,6 +121,8 @@ public class MainActivity extends AppCompatActivity {
                         bulbOff.setBackgroundColor(getResources().getColor(R.color.colorAccent));
                         bulbOn.setBackgroundColor(getResources().getColor(R.color.colorDisable));
                     }
+                }else{
+                    Toast.makeText(MainActivity.this, "Not connected", Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -155,6 +139,8 @@ public class MainActivity extends AppCompatActivity {
                         bulbOff.setBackgroundColor(getResources().getColor(R.color.colorDisable));
                         bulbOn.setBackgroundColor(getResources().getColor(R.color.colorAccent));
                     }
+                }else{
+                    Toast.makeText(MainActivity.this, "Not connected", Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -199,7 +185,6 @@ public class MainActivity extends AppCompatActivity {
             }else if( characteristic.getUuid().toString().equals(CHARACTERISTIC_BULB.toString())){
                 byte[] val = characteristic.getValue();
                 final int i =  Character.getNumericValue(val[0]);
-                Log.d(TAG, "read "+ i);
                 MainActivity.this.runOnUiThread(new Runnable() {
                     public void run() {
                         if(i==0){
@@ -211,6 +196,15 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                 });
+            }else if( characteristic.getUuid().toString().equals(CHARACTERISTIC_BEEP.toString())){
+                byte[] val = characteristic.getValue();
+                final int i =  Character.getNumericValue(val[0]);
+
+                MainActivity.this.runOnUiThread(new Runnable() {
+                    public void run() {
+
+                    }
+                });
             }
         }
 
@@ -218,6 +212,15 @@ public class MainActivity extends AppCompatActivity {
         public void onConnectionStateChange(final BluetoothGatt gatt, final int status, final int newState) {
             // this will get called when a device connects or disconnects
             switch (newState) {
+                case 1:
+                    MainActivity.this.runOnUiThread(new Runnable() {
+                        public void run() {
+                            connStatus.setText("Connection Lost. Scanning...");
+                            beepGattChar = null;
+                            bulbGattChar = null;
+                            temperatureGattChar = null;
+                        }
+                    });
                 case 2:
                     MainActivity.this.runOnUiThread(new Runnable() {
                         public void run() {
@@ -230,10 +233,25 @@ public class MainActivity extends AppCompatActivity {
                 default:
                     MainActivity.this.runOnUiThread(new Runnable() {
                         public void run() {
-
+                            connStatus.setText("Scanning...");
+                            beepGattChar = null;
+                            bulbGattChar = null;
+                            temperatureGattChar = null;
                         }
                     });
                     break;
+            }
+        }
+        @Override
+        public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+            super.onCharacteristicWrite(gatt, characteristic, status);
+            if(characteristic.getUuid().toString().equals(CHARACTERISTIC_BEEP.toString())) {
+                for (BluetoothGattDescriptor descriptor : beepGattChar.getDescriptors()) {
+                    descriptor.setValue( BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);
+                    gatt.writeDescriptor(descriptor);
+                }
+                gatt.setCharacteristicNotification(beepGattChar, true);
+                Log.d(TAG, "beep write : " + status + " : " + String.valueOf(characteristic.getValue()[0]));
             }
         }
 
@@ -286,11 +304,11 @@ public class MainActivity extends AppCompatActivity {
                     final int i =  Character.getNumericValue(val[0]);
                     MainActivity.this.runOnUiThread(new Runnable() {
                         public void run() {
-                            if(i==1){
+                            /*if(i==1){
                                 beepBtn.setBackgroundColor(getResources().getColor(R.color.colorAccent));
                             }else{
                                 beepBtn.setBackgroundColor(getResources().getColor(R.color.colorDisable));
-                            }
+                            }*/
                         }
                     });
                 }
