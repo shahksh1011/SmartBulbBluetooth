@@ -59,6 +59,7 @@ public class MainActivity extends AppCompatActivity {
     BluetoothGattService gattService;
     BluetoothGattCharacteristic temperatureGattChar, bulbGattChar, beepGattChar;
 
+    int beepCount = 0;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -100,7 +101,13 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 if(beepGattChar!=null){
                     byte[] value = new byte[1];
-                    value[0] = (byte) (1 & 0xFF);
+                    if(beepCount == 0){
+                        value[0] = (byte) (1 & 0xFF);
+                        beepCount = 1;
+                    }else{
+                        value[0] = (byte) (0 & 0xFF);
+                        beepCount = 0;
+                    }
                     beepGattChar.setValue(value);
                     bluetoothGatt.writeCharacteristic(beepGattChar);
                 }else{
